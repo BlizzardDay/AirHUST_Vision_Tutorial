@@ -1,3 +1,0 @@
-E:/Git/AirHUST_Vision_Tutorial/lab1_1/CMakeFiles/lab1_1.dir
-E:/Git/AirHUST_Vision_Tutorial/lab1_1/CMakeFiles/ALL_BUILD.dir
-E:/Git/AirHUST_Vision_Tutorial/lab1_1/CMakeFiles/ZERO_CHECK.dir
