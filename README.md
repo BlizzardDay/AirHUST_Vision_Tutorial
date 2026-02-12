@@ -39,6 +39,9 @@ double cv::threshold(cv::InputArray src, cv::OutputArray dst, double thresh, dou
 // 自适应阈值
 void cv::adaptiveThreshold(cv::InputArray src, cv::OutputArray dst, double maxValue, int adaptiveMethod, int thresholdType, int blockSize, double C);
 
+// 颜色范围分割
+void cv::inRange(cv::InputArray src, cv::InputArray lowerb, cv::InputArray upperb, cv::OutputArray dst);
+
 // 查找轮廓
 void cv::findContours(cv::InputArray image, cv::OutputArrayOfArrays contours, cv::OutputArray hierarchy, int mode, int method, cv::Point offset = cv::Point());
 
@@ -66,6 +69,9 @@ cv2.threshold(src: MatLike, thresh: float, maxval: float, type: int) -> tuple[fl
 
 # 自适应阈值 (自动处理光照不均)
 cv2.adaptiveThreshold(src: MatLike, maxValue: float, adaptiveMethod: int, thresholdType: int, blockSize: int, C: float) -> MatLike
+
+# 颜色范围分割 (通常用于HSV空间)
+cv2.inRange(src: MatLike, lowerb: Sequence[int], upperb: Sequence[int]) -> MatLike
 
 # 查找轮廓
 cv2.findContours(image: MatLike, mode: int, method: int, ...) -> tuple[Sequence[MatLike], MatLike]
