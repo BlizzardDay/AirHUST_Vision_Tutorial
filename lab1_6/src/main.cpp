@@ -26,7 +26,7 @@ void perspective(Rect rec, vector<Point2i> card, Mat origin, Mat &result) {
 }
 
 int main() {
-	Mat img = imread("../data/plate4.jpg"), binary, clone = img.clone(), result;
+	Mat img = imread("../data/plate3.png"), binary, clone = img.clone(), result;
 	cvtColor(img, img, COLOR_BGR2HSV);
 	inRange(img, Scalar(90, 80, 70), Scalar(150, 255, 255), binary);
 	Mat kernel = getStructuringElement(MORPH_RECT, Size(5, 5));
@@ -59,7 +59,7 @@ int main() {
 	}
 	//imwrite("../Output/plate1/binary.jpg", binary);
 	//imwrite("../Output/plate1/clone.jpg", clone);
-	imwrite("../Output/plate4/result.jpg", result);
+	imwrite("../Output/plate3/result.jpg", result);
 	waitKey(0);
 	return 0;
 }
