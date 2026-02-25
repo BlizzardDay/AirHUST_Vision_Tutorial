@@ -1,26 +1,38 @@
-## lab1_6_simple_threshold
 
-现提供若干车牌图片（包含不同光照条件和拍摄角度），请你截取出其中车牌的部分 (提取相关ROI) 并规格化，最后保存图片。
+
+## lab1_7_mask
+
+现提供三张图片：`logo`、`pic` 和 `background`。请基于 `logo` 图生成 logo 的掩膜（mask），用于提取出 logo 部分；基于 `pic` 提取出主要人物；最后将提取出的人物以及 logo 合成到 `background` 的合适位置上，并保存最终结果。
 
 ### 实验要求：
 
-1. **预处理**：读取图像，将其转换为灰度图，并进行适当的高斯模糊以去噪。你可以任意地添加预处理，反正
-2. **阈值分割**：
-   * 尝试使用**固定阈值**（如 `cv2.threshold`）进行二值化。
-   * 尝试使用**自适应阈值**（如 `cv2.adaptiveThreshold`）进行二值化。
-   * **对比**两种方法的效果，选择能更清晰分离出车牌矩形轮廓的那种。
-3. **轮廓查找与筛选**：
-   * 查找二值图中的所有轮廓。
-   * 通过面积大小、形状（矩形）或长宽比筛选出最可能是车牌的轮廓。
-   * 使用多边形拟合（ApproxPolyDP）获取该轮廓的4个顶点。
-4. **透视矫正**：
-   * 根据拟合出的4个顶点，构建透视变换矩阵。
-   * 将车牌区域变换为标准的矩形（建议尺寸：440x140 或比例接近 3.14:1）。
-5. **结果输出**：展示二值化过程图，并保存最终矫正后的几张车牌图像。
+1. **Logo 掩膜生成与提取**：
+   
+   * 读取 `logo` 图片，考虑其黑白差距明显，可以直接将其转换为灰度图。
+   * 对灰度图进行阈值分割，生成一个二值掩膜（mask）：logo 主体区域为白色（255），背景区域为黑色（0）。
+   * 使用 `cv2.bitwise_not` 生成反向掩膜（mask_inv）。
+   * 利用掩膜与位运算（`cv2.bitwise_and`）提取出 logo 的前景像素。
 
-备注：(可选) 使用形态学操作（如闭运算）连接断裂的边缘，使车牌轮廓更完整。如果**透视矫正**难住你了，你可以选择一个简化版本，即用矩形框出车牌的位置。
+2. **人物提取**：
+   
+   * 读取 `pic` 图片。
+   * 选择以下任意一种方法将人物从背景中分离：
+     - **基于颜色空间**：将图片转换到 HSV 空间，根据背景颜色范围（如纯色背景）使用 `cv2.inRange` 生成掩膜。
+     - **基于阈值分割**：如果背景与人物对比度较大，可用阈值方法生成掩膜。
+     - **基于 GrabCut**（进阶可选）：使用 `cv2.grabCut` 进行交互式/半自动前景提取。
+   * 利用生成的掩膜提取人物前景。可以使用形态学操作（开运算/闭运算）清理掩膜边缘的噪点和毛刺。
 
+3. **图像合成**：
+   
+   * 读取 `background` 图片。
+   * 确定人物和 logo 在背景图中的放置位置，根据需要对人物和 logo 进行 **缩放**（`cv2.resize`），使其大小与背景图协调。
+   * 在背景图的目标区域（ROI）中，利用掩膜进行合成：
+     - 用 `mask_inv` 在背景 ROI 上"挖掉"前景将要占据的区域。
+     - 用 `mask` 提取前景像素。
+     - 将两者用 `cv2.add` 相加，得到无缝合成的结果。
+   * 将合成后的 ROI 写回背景图的对应位置。
 
+4. **结果输出**：展示每一步的中间结果（掩膜、提取的前景、合成过程），并保存最终的合成图像。
 
 ### 你可能要用到的工具函数原型：
 
@@ -30,84 +42,122 @@
 // 颜色空间转换
 void cv::cvtColor(cv::InputArray src, cv::OutputArray dst, int code, int dstCn = 0);
 
-// 高斯模糊
-void cv::GaussianBlur(cv::InputArray src, cv::OutputArray dst, cv::Size ksize, double sigmaX, double sigmaY = 0, int borderType = BORDER_DEFAULT);
-
-// 固定阈值
+// 固定阈值（用于生成掩膜）
 double cv::threshold(cv::InputArray src, cv::OutputArray dst, double thresh, double maxval, int type);
 
-// 自适应阈值
-void cv::adaptiveThreshold(cv::InputArray src, cv::OutputArray dst, double maxValue, int adaptiveMethod, int thresholdType, int blockSize, double C);
+// HSV颜色范围筛选（用于按颜色生成掩膜）
+void cv::inRange(cv::InputArray src, cv::InputArray lowerb, cv::InputArray upperb, cv::OutputArray dst);
 
-// 查找轮廓
-void cv::findContours(cv::InputArray image, cv::OutputArrayOfArrays contours, cv::OutputArray hierarchy, int mode, int method, cv::Point offset = cv::Point());
+// 位运算 - 与（配合掩膜提取感兴趣区域）
+void cv::bitwise_and(cv::InputArray src1, cv::InputArray src2, cv::OutputArray dst, cv::InputArray mask = cv::noArray());
 
-// 多边形拟合（用于将复杂的轮廓简化为四边形）
-void cv::approxPolyDP(cv::InputArray curve, cv::OutputArray approxCurve, double epsilon, bool closed);
+// 位运算 - 或
+void cv::bitwise_or(cv::InputArray src1, cv::InputArray src2, cv::OutputArray dst, cv::InputArray mask = cv::noArray());
 
-// 绘制轮廓（用于调试）
-void cv::drawContours(cv::InputArray image, cv::InputArrayOfArrays contours, int contourIdx, const cv::Scalar& color, int thickness = 1, int lineType = LINE_8, cv::InputArray hierarchy = cv::noArray(), int maxLevel = INT_MAX, cv::Point offset = cv::Point());
+// 位运算 - 取反（生成反向掩膜）
+void cv::bitwise_not(cv::InputArray src, cv::OutputArray dst, cv::InputArray mask = cv::noArray());
 
-// 轮廓面积
-double cv::contourArea(cv::InputArray contour, bool oriented = false);
+// 图像加法（合成前景与背景）
+void cv::add(cv::InputArray src1, cv::InputArray src2, cv::OutputArray dst, cv::InputArray mask = cv::noArray(), int dtype = -1);
+
+// 图像缩放
+void cv::resize(cv::InputArray src, cv::OutputArray dst, cv::Size dsize, double fx = 0, double fy = 0, int interpolation = INTER_LINEAR);
+
+// 形态学操作（清理掩膜噪点）
+void cv::morphologyEx(cv::InputArray src, cv::OutputArray dst, int op, cv::InputArray kernel, cv::Point anchor = cv::Point(-1,-1), int iterations = 1, int borderType = BORDER_CONSTANT, const cv::Scalar& borderValue = cv::morphologyDefaultBorderValue());
+
+// 创建结构元素（形态学操作的核）
+cv::Mat cv::getStructuringElement(int shape, cv::Size ksize, cv::Point anchor = cv::Point(-1,-1));
 ```
 
 如果你是Python选手：
 
 ```python
-# 颜色空间转换 (BGR -> GRAY)
+# 颜色空间转换 (BGR -> GRAY / BGR -> HSV)
 cv2.cvtColor(src: MatLike, code: int, ...) -> MatLike
 
-# 高斯模糊
-cv2.GaussianBlur(src: MatLike, ksize: tuple[int, int], sigmaX: float, ...) -> MatLike
-
-# 固定阈值 (返回值为: 实际使用的阈值, 二值化图)
+# 固定阈值 (生成二值掩膜)
 cv2.threshold(src: MatLike, thresh: float, maxval: float, type: int) -> tuple[float, MatLike]
 
-# 自适应阈值 (自动处理光照不均)
-cv2.adaptiveThreshold(src: MatLike, maxValue: float, adaptiveMethod: int, thresholdType: int, blockSize: int, C: float) -> MatLike
+# HSV颜色范围筛选 (返回二值掩膜：在范围内为255，否则为0)
+cv2.inRange(src: MatLike, lowerb: MatLike, upperb: MatLike) -> MatLike
 
-# 查找轮廓
-cv2.findContours(image: MatLike, mode: int, method: int, ...) -> tuple[Sequence[MatLike], MatLike]
+# 位运算 - 与 (使用mask参数控制作用区域)
+cv2.bitwise_and(src1: MatLike, src2: MatLike, mask: MatLike = ...) -> MatLike
 
-# 多边形拟合 (epsilon通常设为周长的0.02倍左右)
-cv2.approxPolyDP(curve: MatLike, epsilon: float, closed: bool) -> MatLike
+# 位运算 - 或
+cv2.bitwise_or(src1: MatLike, src2: MatLike, mask: MatLike = ...) -> MatLike
 
-# 绘制轮廓
-cv2.drawContours(image: MatLike, contours: Sequence[MatLike], contourIdx: int, color: Sequence[float], thickness: int = ...) -> MatLike
+# 位运算 - 取反 (白变黑，黑变白)
+cv2.bitwise_not(src: MatLike, mask: MatLike = ...) -> MatLike
 
-# 轮廓面积计算
-cv2.contourArea(contour: MatLike, oriented: bool = ...) -> float
+# 图像加法 (饱和运算，不会溢出)
+cv2.add(src1: MatLike, src2: MatLike, mask: MatLike = ..., dtype: int = ...) -> MatLike
+
+# 图像缩放
+cv2.resize(src: MatLike, dsize: tuple[int, int], fx: float = ..., fy: float = ..., interpolation: int = ...) -> MatLike
+
+# 形态学操作 (开运算/闭运算/膨胀/腐蚀)
+cv2.morphologyEx(src: MatLike, op: int, kernel: MatLike, ...) -> MatLike
+
+# 创建结构元素
+cv2.getStructuringElement(shape: int, ksize: tuple[int, int], anchor: tuple[int, int] = ...) -> MatLike
 ```
 
 **注意**：
 
-1. `cv2.findContours` 会修改原图（在旧版本中）或返回新图，建议在二值图的副本上操作。
-2. `adaptiveThreshold` 的 `blockSize` 参数必须是**奇数**（如 11, 13, 15...）。
-3. 通过 `approxPolyDP` 拟合出的多边形，其顶点顺序是不固定的。在进行透视变换前，你需要编写逻辑将这4个点排序为：左上、右上、左下、右下（尽量与 lab1_5 中的逻辑一致）。
-4. 车牌是蓝底白字，在灰度图上对比度明显，但容易受阴影影响。你需要尽可能找到一种鲁棒的方法处理全部图片，而不能依赖于手工调整。当然，也没必要强求完美，后边有更好用的工具。
+1. **掩膜（mask）必须是单通道的 8 位图像**（`dtype=np.uint8`），像素值只有 0 和 255。在 `bitwise_and` 中，mask 参数决定了"哪些像素参与运算"——mask 为 255 的地方保留，为 0 的地方置零。
+2. **ROI 的尺寸必须与前景图一致**。在将缩放后的 logo/人物放到背景上之前，先确认 `roi = background[y:y+h, x:x+w]` 中的 `h, w` 与前景图的尺寸完全匹配，否则位运算会因形状不一致而报错。
+3. **`cv2.add` 与 `+` 运算符不同**：`cv2.add` 执行饱和运算（上限 255），而 NumPy 的 `+` 会发生溢出取模（如 200+100=44）。合成图像时务必使用 `cv2.add`。
+4. 如果 logo 本身有白色/浅色背景，阈值分割后要注意**前景和背景哪个是白哪个是黑**，可能需要调换 `mask` 和 `mask_inv` 的角色。
 
 ### 实验提示：
 
-1. **关于阈值选择**：对于光照均匀的图，`cv2.THRESH_OTSU` 很好用；但对于有阴影的实拍图，`cv2.ADAPTIVE_THRESH_GAUSSIAN_C` 往往能更好地保留边缘。到底该选哪个最好呢?
-2. **关于筛选策略**：
-   * `cv2.boundingRect(cnt)` 可以获取轮廓的外接矩形。
-   * 通过 `w / h` (宽高比) 过滤：中国车牌的长宽比通常在 3 到 4 之间。
-   * 通过 `cv2.contourArea` 过滤：太小的噪点轮廓直接忽略。
-3. **关于多边形拟合**：
-   * 使用 `cv2.arcLength` 计算轮廓周长。
-   * 设定 `epsilon = 0.02 * perimeter` ，允许一定误差进行拟合。
-   * 如果拟合结果 `len(approx) == 4`，那么恭喜你，可能找到了车牌！
-4. **调试技巧**：每一步都用 `cv2.imshow` 把中间结果显示出来（例如显示二值化后的图，显示画了轮廓的图），不要只看最后结果。
+1. **Logo 掩膜生成的典型流程**：
+   
+   ```
+   logo_gray = cv2.cvtColor(logo, cv2.COLOR_BGR2GRAY)
+   _, mask = cv2.threshold(logo_gray, 阈值, 255, cv2.THRESH_BINARY)
+   # 或使用 cv2.THRESH_BINARY_INV，取决于logo背景是亮还是暗
+   mask_inv = cv2.bitwise_not(mask)
+   ```
+
+2. **合成的核心思路（以 logo 为例）**：
+   
+   ```
+   # 1. 在背景ROI上"擦除"logo将要占据的区域
+   bg_roi = background[y:y+h, x:x+w]
+   bg_part = cv2.bitwise_and(bg_roi, bg_roi, mask=mask_inv)
+   
+   # 2. 从logo中提取前景像素
+   fg_part = cv2.bitwise_and(logo, logo, mask=mask)
+   
+   # 3. 合成
+   combined = cv2.add(bg_part, fg_part)
+   background[y:y+h, x:x+w] = combined
+   ```
+
+3. **人物提取提示**：
+   
+   * 如果 `pic` 是纯色背景（如绿幕、蓝幕、白色背景），转到 HSV 空间后用 `cv2.inRange` 把背景颜色选出来，再取反就得到人物掩膜。
+   * 如果背景不是纯色，可以尝试使用 `cv2.THRESH_OTSU` 自动确定阈值，或者使用边缘检测+轮廓查找的方式。
+   * 不过本场景中色彩非常鲜明，如果你已经完成了`lab1_6`，那么想必做这个是小菜一碟。
+   * 提取后的掩膜边缘可能有锯齿，可用 `cv2.GaussianBlur` 对掩膜进行轻微模糊，再重新二值化，以获得更平滑的边缘。
+
+4. **调试技巧**：
+   
+   * 每一步都把 mask 显示出来看看效果——mask 看起来应该像剪影。
+   * 合成前，先单独查看 `bg_part` 和 `fg_part`，确认"擦除"和"提取"都正确。
+   * 如果合成结果出现"黑边"或"白边"，通常是掩膜的边缘不够精确，尝试调整阈值或用形态学腐蚀（`cv2.erode`）缩小掩膜边界。
 
 ### 实验思考：
 
-1. 如果车牌颜色与车身颜色非常接近（例如白车白牌），仅靠灰度阈值分割还能奏效吗？如果不奏效，可以利用 HSV 颜色空间进行分割吗？
-2. 在二值化后，车牌区域的内部经常会有很多黑色空洞（文字部分），如何使用**形态学操作**（膨胀/腐蚀/闭运算）将车牌变成一个实心的白色矩形块，以便更容易被检测到？
-3. 自适应阈值中的 `blockSize` 和 `C` 参数分别对结果有什么影响？调大或调小会发生什么？
+1. 在合成时，直接用 `cv2.add` 拼合前景和背景，接缝处可能会出现不自然的硬边。有没有办法实现**羽化（feathering**效果，让边缘过渡更柔和？提示：考虑对 mask 做高斯模糊后作为**alpha 通道**进行加权混合。你也可以试试`cv2.seamlessClone` (泊松融合)。
+2. `cv2.bitwise_and(img, img, mask=mask)` 与直接用 NumPy 操作 `img[mask == 0] = 0` 的效果是否等价？各自有什么优缺点？
+3. 如果 logo 包含**半透明区域**（如 PNG 格式的 alpha 通道），上述二值掩膜方法还适用吗？应该如何利用 alpha 通道实现更精确的合成？提示：`cv2.imread("logo.png", cv2.IMREAD_UNCHANGED)` 可以读取含 alpha 通道的 4 通道图像。
 
 ## 实验完毕后，记得提交修改（命令行中-m后的字符串可自行确定），以供检查：
 
-```bash
-git commit -a -m "my work on lab1_6 is done."
+```
+git commit -a -m "my work on lab1_7 is done."
 ```
