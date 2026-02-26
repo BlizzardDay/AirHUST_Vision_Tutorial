@@ -1,163 +1,208 @@
 
 
-## lab1_7_mask
+## lab1_8_morphological_process
 
-现提供三张图片：`logo`、`pic` 和 `background`。请基于 `logo` 图生成 logo 的掩膜（mask），用于提取出 logo 部分；基于 `pic` 提取出主要人物；最后将提取出的人物以及 logo 合成到 `background` 的合适位置上，并保存最终结果。
+对于给定的二值图片，请依次选择合适的核形状与大小，分别进行**腐蚀、膨胀、开操作、闭操作、形态学梯度、顶帽和黑帽**运算，输出全部结果图片，并观察各操作的效果差异。
+
+而后，请使用**形态学操作 + 轮廓筛选**（不要手动框选），精准截取出图片中的 `Morphology` 单词整体，以及其中每个单独的字母，分别保存这些图片。
+
+### 背景知识
+
+形态学操作是图像处理中最基础也最实用的工具之一，主要作用于**二值图像**（或灰度图像），通过一个称为**结构元素（Structuring Element / Kernel**的小矩阵在图像上滑动，根据不同规则修改像素值。
+
+七种基本形态学操作的直觉理解如下：
+
+| 操作                  | 效果       | 直觉描述              |
+| ------------------- | -------- | ----------------- |
+| **腐蚀（Erode）**       | 白色区域缩小   | "啃掉"白色边缘，消除细小白色噪点 |
+| **膨胀（Dilate）**      | 白色区域扩大   | "长胖"白色边缘，填补细小黑色空洞 |
+| **开运算（Opening）**    | 先腐蚀后膨胀   | 去除白色小噪点，保持主体大小不变  |
+| **闭运算（Closing）**    | 先膨胀后腐蚀   | 填补黑色小空洞，保持主体大小不变  |
+| **形态学梯度（Gradient）** | 膨胀 − 腐蚀  | 提取物体的轮廓/边缘        |
+| **顶帽（Top Hat）**     | 原图 − 开运算 | 提取比周围亮的细小结构（亮细节）  |
+| **黑帽（Black Hat）**   | 闭运算 − 原图 | 提取比周围暗的细小结构（暗细节）  |
+
+```
+原图 (白色文字，黑色背景):        腐蚀后:              膨胀后:
+┌────────────────────┐          ┌──────────────────┐  ┌──────────────────┐
+│                    │          │                  │  │                  │
+│    ████  ██████    │          │    ██    ████    │  │   ██████ ████████│
+│   ██  ██ ██       │          │   █  █  █       │  │  ████ ████████   │
+│   ██  ██ ████     │          │   █  █  ███     │  │  ████ ████████   │
+│   ██  ██ ██       │          │   █  █  █       │  │  ████ ████████   │
+│    ████  ██       │          │    ██   █       │  │   ██████ ████    │
+│                    │          │                  │  │                  │
+└────────────────────┘          └──────────────────┘  └──────────────────┘
+  字母笔画正常粗细                  笔画变细/断裂          笔画变粗/粘连
+```
 
 ### 实验要求：
 
-1. **Logo 掩膜生成与提取**：
+1. **结构元素实验**：
    
-   * 读取 `logo` 图片，考虑其黑白差距明显，可以直接将其转换为灰度图。
-   * 对灰度图进行阈值分割，生成一个二值掩膜（mask）：logo 主体区域为白色（255），背景区域为黑色（0）。
-   * 使用 `cv2.bitwise_not` 生成反向掩膜（mask_inv）。
-   * 利用掩膜与位运算（`cv2.bitwise_and`）提取出 logo 的前景像素。
+   * 使用 `cv2.getStructuringElement` 分别创建以下三种核形状：
+     - **矩形核**（`cv2.MORPH_RECT`）
+     - **椭圆核**（`cv2.MORPH_ELLIPSE`）
+     - **十字核**（`cv2.MORPH_CROSS`）
+   * 选择合适的核大小（如 3×3、5×5、7×7），观察不同大小对操作效果的影响。
 
-2. **人物提取**：
+2. **七种形态学操作**：
    
-   * 读取 `pic` 图片。
-   * 选择以下任意一种方法将人物从背景中分离：
-     - **基于颜色空间**：将图片转换到 HSV 空间，根据背景颜色范围（如纯色背景）使用 `cv2.inRange` 生成掩膜。
-     - **基于阈值分割**：如果背景与人物对比度较大，可用阈值方法生成掩膜。
-     - **基于 GrabCut**（进阶可选）：使用 `cv2.grabCut` 进行交互式/半自动前景提取。
-   * 利用生成的掩膜提取人物前景。可以使用形态学操作（开运算/闭运算）清理掩膜边缘的噪点和毛刺。
+   * 对给定的二值图像，依次执行以下操作，并将结果图像全部保存/展示：
+     - 腐蚀（`cv2.erode`）
+     - 膨胀（`cv2.dilate`）
+     - 开运算（`cv2.morphologyEx` + `cv2.MORPH_OPEN`）
+     - 闭运算（`cv2.morphologyEx` + `cv2.MORPH_CLOSE`）
+     - 形态学梯度（`cv2.morphologyEx` + `cv2.MORPH_GRADIENT`）
+     - 顶帽（`cv2.morphologyEx` + `cv2.MORPH_TOPHAT`）
+     - 黑帽（`cv2.morphologyEx` + `cv2.MORPH_BLACKHAT`）
+   * 建议将全部结果拼成一张大图进行直观对比。
 
-3. **图像合成**：
+3. **文字提取实战**：
    
-   * 读取 `background` 图片。
-   * 确定人物和 logo 在背景图中的放置位置，根据需要对人物和 logo 进行 **缩放**（`cv2.resize`），使其大小与背景图协调。
-   * 在背景图的目标区域（ROI）中，利用掩膜进行合成：
-     - 用 `mask_inv` 在背景 ROI 上"挖掉"前景将要占据的区域。
-     - 用 `mask` 提取前景像素。
-     - 将两者用 `cv2.add` 相加，得到无缝合成的结果。
-   * 将合成后的 ROI 写回背景图的对应位置。
+   * 读取包含 `Morphology` 单词的二值图，你可以进行任意的预处理。
+   * **提取整个单词**：
+     - 使用形态学操作（如膨胀或闭运算），将相邻字母**连通**成一个整体区域。
+     - 查找轮廓，筛选出或符合条件的轮廓。
+     - 用 `cv2.boundingRect` 获取外接矩形，截取该区域并保存。
+   * **提取每个字母**：
+     - 在**不进行字母连通**的条件下，查找出**分离的**轮廓。
+     - 筛选出每个字母的轮廓（过滤噪点）。
+     - 对筛选出的轮廓按 **x 坐标排序**（从左到右），依次截取每个字母的外接矩形区域并保存。
+   * 保存格式建议：整个单词保存为 `word_morphology.png`，各字母保存为 `letter_0_M.png`、`letter_1_o.png`、...（也可简单地按序号命名）。
 
-4. **结果输出**：展示每一步的中间结果（掩膜、提取的前景、合成过程），并保存最终的合成图像。
+4. **结果输出**：将七种形态学操作的对比图以及截取的单词/字母图片全部保存。
 
 ### 你可能要用到的工具函数原型：
 
 如果你是C++选手：
 
 ```cpp
-// 颜色空间转换
-void cv::cvtColor(cv::InputArray src, cv::OutputArray dst, int code, int dstCn = 0);
-
-// 固定阈值（用于生成掩膜）
-double cv::threshold(cv::InputArray src, cv::OutputArray dst, double thresh, double maxval, int type);
-
-// HSV颜色范围筛选（用于按颜色生成掩膜）
-void cv::inRange(cv::InputArray src, cv::InputArray lowerb, cv::InputArray upperb, cv::OutputArray dst);
-
-// 位运算 - 与（配合掩膜提取感兴趣区域）
-void cv::bitwise_and(cv::InputArray src1, cv::InputArray src2, cv::OutputArray dst, cv::InputArray mask = cv::noArray());
-
-// 位运算 - 或
-void cv::bitwise_or(cv::InputArray src1, cv::InputArray src2, cv::OutputArray dst, cv::InputArray mask = cv::noArray());
-
-// 位运算 - 取反（生成反向掩膜）
-void cv::bitwise_not(cv::InputArray src, cv::OutputArray dst, cv::InputArray mask = cv::noArray());
-
-// 图像加法（合成前景与背景）
-void cv::add(cv::InputArray src1, cv::InputArray src2, cv::OutputArray dst, cv::InputArray mask = cv::noArray(), int dtype = -1);
-
-// 图像缩放
-void cv::resize(cv::InputArray src, cv::OutputArray dst, cv::Size dsize, double fx = 0, double fy = 0, int interpolation = INTER_LINEAR);
-
-// 形态学操作（清理掩膜噪点）
-void cv::morphologyEx(cv::InputArray src, cv::OutputArray dst, int op, cv::InputArray kernel, cv::Point anchor = cv::Point(-1,-1), int iterations = 1, int borderType = BORDER_CONSTANT, const cv::Scalar& borderValue = cv::morphologyDefaultBorderValue());
-
-// 创建结构元素（形态学操作的核）
+// 创建结构元素
+// shape: MORPH_RECT / MORPH_ELLIPSE / MORPH_CROSS
 cv::Mat cv::getStructuringElement(int shape, cv::Size ksize, cv::Point anchor = cv::Point(-1,-1));
+
+// 腐蚀
+void cv::erode(cv::InputArray src, cv::OutputArray dst, cv::InputArray kernel,
+               cv::Point anchor = cv::Point(-1,-1), int iterations = 1,
+               int borderType = BORDER_CONSTANT,
+               const cv::Scalar& borderValue = cv::morphologyDefaultBorderValue());
+
+// 膨胀
+void cv::dilate(cv::InputArray src, cv::OutputArray dst, cv::InputArray kernel,
+                cv::Point anchor = cv::Point(-1,-1), int iterations = 1,
+                int borderType = BORDER_CONSTANT,
+                const cv::Scalar& borderValue = cv::morphologyDefaultBorderValue());
+
+// 高级形态学操作 (开/闭/梯度/顶帽/黑帽)
+// op: MORPH_OPEN / MORPH_CLOSE / MORPH_GRADIENT / MORPH_TOPHAT / MORPH_BLACKHAT
+void cv::morphologyEx(cv::InputArray src, cv::OutputArray dst, int op, cv::InputArray kernel,
+                      cv::Point anchor = cv::Point(-1,-1), int iterations = 1,
+                      int borderType = BORDER_CONSTANT,
+                      const cv::Scalar& borderValue = cv::morphologyDefaultBorderValue());
+
+// 查找轮廓
+void cv::findContours(cv::InputArray image, cv::OutputArrayOfArrays contours,
+                      cv::OutputArray hierarchy, int mode, int method,
+                      cv::Point offset = cv::Point());
+
+// 外接矩形
+cv::Rect cv::boundingRect(cv::InputArray array);
+
+// 轮廓面积
+double cv::contourArea(cv::InputArray contour, bool oriented = false);
+
+// 绘制轮廓
+void cv::drawContours(cv::InputArray image, cv::InputArrayOfArrays contours,
+                      int contourIdx, const cv::Scalar& color, int thickness = 1, ...);
 ```
 
 如果你是Python选手：
 
 ```python
-# 颜色空间转换 (BGR -> GRAY / BGR -> HSV)
-cv2.cvtColor(src: MatLike, code: int, ...) -> MatLike
+# 创建结构元素 (核)
+# shape: cv2.MORPH_RECT / cv2.MORPH_ELLIPSE / cv2.MORPH_CROSS
+cv2.getStructuringElement(shape: int, ksize: tuple[int, int]) -> MatLike
 
-# 固定阈值 (生成二值掩膜)
-cv2.threshold(src: MatLike, thresh: float, maxval: float, type: int) -> tuple[float, MatLike]
+# 腐蚀 (iterations 控制迭代次数)
+cv2.erode(src: MatLike, kernel: MatLike, iterations: int = 1, ...) -> MatLike
 
-# HSV颜色范围筛选 (返回二值掩膜：在范围内为255，否则为0)
-cv2.inRange(src: MatLike, lowerb: MatLike, upperb: MatLike) -> MatLike
+# 膨胀
+cv2.dilate(src: MatLike, kernel: MatLike, iterations: int = 1, ...) -> MatLike
 
-# 位运算 - 与 (使用mask参数控制作用区域)
-cv2.bitwise_and(src1: MatLike, src2: MatLike, mask: MatLike = ...) -> MatLike
+# 高级形态学操作
+# op: cv2.MORPH_OPEN / MORPH_CLOSE / MORPH_GRADIENT / MORPH_TOPHAT / MORPH_BLACKHAT
+cv2.morphologyEx(src: MatLike, op: int, kernel: MatLike, iterations: int = 1, ...) -> MatLike
 
-# 位运算 - 或
-cv2.bitwise_or(src1: MatLike, src2: MatLike, mask: MatLike = ...) -> MatLike
+# 查找轮廓
+cv2.findContours(image: MatLike, mode: int, method: int) -> tuple[Sequence[MatLike], MatLike]
 
-# 位运算 - 取反 (白变黑，黑变白)
-cv2.bitwise_not(src: MatLike, mask: MatLike = ...) -> MatLike
+# 外接矩形 (返回 x, y, w, h)
+cv2.boundingRect(array: MatLike) -> tuple[int, int, int, int]
 
-# 图像加法 (饱和运算，不会溢出)
-cv2.add(src1: MatLike, src2: MatLike, mask: MatLike = ..., dtype: int = ...) -> MatLike
+# 轮廓面积
+cv2.contourArea(contour: MatLike) -> float
 
-# 图像缩放
-cv2.resize(src: MatLike, dsize: tuple[int, int], fx: float = ..., fy: float = ..., interpolation: int = ...) -> MatLike
-
-# 形态学操作 (开运算/闭运算/膨胀/腐蚀)
-cv2.morphologyEx(src: MatLike, op: int, kernel: MatLike, ...) -> MatLike
-
-# 创建结构元素
-cv2.getStructuringElement(shape: int, ksize: tuple[int, int], anchor: tuple[int, int] = ...) -> MatLike
+# 绘制轮廓
+cv2.drawContours(image: MatLike, contours: Sequence[MatLike], contourIdx: int,
+                 color: Sequence[float], thickness: int = ...) -> MatLike
 ```
 
 **注意**：
 
-1. **掩膜（mask）必须是单通道的 8 位图像**（`dtype=np.uint8`），像素值只有 0 和 255。在 `bitwise_and` 中，mask 参数决定了"哪些像素参与运算"——mask 为 255 的地方保留，为 0 的地方置零。
-2. **ROI 的尺寸必须与前景图一致**。在将缩放后的 logo/人物放到背景上之前，先确认 `roi = background[y:y+h, x:x+w]` 中的 `h, w` 与前景图的尺寸完全匹配，否则位运算会因形状不一致而报错。
-3. **`cv2.add` 与 `+` 运算符不同**：`cv2.add` 执行饱和运算（上限 255），而 NumPy 的 `+` 会发生溢出取模（如 200+100=44）。合成图像时务必使用 `cv2.add`。
-4. 如果 logo 本身有白色/浅色背景，阈值分割后要注意**前景和背景哪个是白哪个是黑**，可能需要调换 `mask` 和 `mask_inv` 的角色。
+1. `cv2.erode` 和 `cv2.dilate` 的 `iterations` 参数可以控制操作重复次数。`iterations=2` 等价于连续执行两次该操作，效果比单次使用更大核更平滑。
+2. `cv2.morphologyEx` 是统一入口，通过 `op` 参数选择具体操作。开运算和闭运算**不等价于**简单地对膨胀/腐蚀的结果调换顺序——它们的组合顺序是固定的。
+3. `cv2.findContours` 在检索模式上，`cv2.RETR_EXTERNAL` 只返回最外层轮廓（适合本实验），`cv2.RETR_TREE` 返回完整层级结构。
+4. 使用 `cv2.boundingRect` 获取的是**正立的外接矩形**（不旋转），对于本实验中水平排列的文字已经足够。
 
 ### 实验提示：
 
-1. **Logo 掩膜生成的典型流程**：
+1. **如何将分散的字母连成一个整体？**
    
-   ```
-   logo_gray = cv2.cvtColor(logo, cv2.COLOR_BGR2GRAY)
-   _, mask = cv2.threshold(logo_gray, 阈值, 255, cv2.THRESH_BINARY)
-   # 或使用 cv2.THRESH_BINARY_INV，取决于logo背景是亮还是暗
-   mask_inv = cv2.bitwise_not(mask)
+   * 使用**水平方向的膨胀核**，例如 `cv2.getStructuringElement(cv2.MORPH_RECT, (25, 1))`，让相邻字母在水平方向上粘连。
+   * 核的宽度取决于字母之间的间距——太小连不上，太大会把不相关的内容也连进来。需要你观察图片后自行调整。
+
+2. **字母提取的排序**：
+   
+   ```python
+   # 按外接矩形的 x 坐标排序，保证从左到右
+   contours_sorted = sorted(contours, key=lambda c: cv2.boundingRect(c)[0])
    ```
 
-2. **合成的核心思路（以 logo 为例）**：
+3. **面积筛选的参考逻辑**：
    
-   ```
-   # 1. 在背景ROI上"擦除"logo将要占据的区域
-   bg_roi = background[y:y+h, x:x+w]
-   bg_part = cv2.bitwise_and(bg_roi, bg_roi, mask=mask_inv)
-   
-   # 2. 从logo中提取前景像素
-   fg_part = cv2.bitwise_and(logo, logo, mask=mask)
-   
-   # 3. 合成
-   combined = cv2.add(bg_part, fg_part)
-   background[y:y+h, x:x+w] = combined
+   ```python
+   for cnt in contours:
+       x, y, w, h = cv2.boundingRect(cnt)
+       area = cv2.contourArea(cnt)
+       # 过滤太小的噪点和太大的外框
+       if area < 100:
+           continue
+       # 可选：通过长宽比过滤非字母区域
+       aspect_ratio = w / h
+       if aspect_ratio > 3 or aspect_ratio < 0.1:
+           continue
+       # 截取字母
+       letter = img[y:y+h, x:x+w]
    ```
 
-3. **人物提取提示**：
+4. **调试建议**：
    
-   * 如果 `pic` 是纯色背景（如绿幕、蓝幕、白色背景），转到 HSV 空间后用 `cv2.inRange` 把背景颜色选出来，再取反就得到人物掩膜。
-   * 如果背景不是纯色，可以尝试使用 `cv2.THRESH_OTSU` 自动确定阈值，或者使用边缘检测+轮廓查找的方式。
-   * 不过本场景中色彩非常鲜明，如果你已经完成了`lab1_6`，那么想必做这个是小菜一碟。
-   * 提取后的掩膜边缘可能有锯齿，可用 `cv2.GaussianBlur` 对掩膜进行轻微模糊，再重新二值化，以获得更平滑的边缘。
-
-4. **调试技巧**：
-   
-   * 每一步都把 mask 显示出来看看效果——mask 看起来应该像剪影。
-   * 合成前，先单独查看 `bg_part` 和 `fg_part`，确认"擦除"和"提取"都正确。
-   * 如果合成结果出现"黑边"或"白边"，通常是掩膜的边缘不够精确，尝试调整阈值或用形态学腐蚀（`cv2.erode`）缩小掩膜边界。
+   * 在形态学操作后、轮廓查找后，都把中间结果画出来看看。
+   * 用 `cv2.drawContours` 在原图副本上画出找到的所有轮廓，确认筛选逻辑是否正确。
+   * 如果字母 "o"、"p"、"h" 等含有封闭空洞的字母被检测出了内外两层轮廓，记得使用 `cv2.RETR_EXTERNAL` 只取最外层。
 
 ### 实验思考：
 
-1. 在合成时，直接用 `cv2.add` 拼合前景和背景，接缝处可能会出现不自然的硬边。有没有办法实现**羽化（feathering**效果，让边缘过渡更柔和？提示：考虑对 mask 做高斯模糊后作为**alpha 通道**进行加权混合。你也可以试试`cv2.seamlessClone` (泊松融合)。
-2. `cv2.bitwise_and(img, img, mask=mask)` 与直接用 NumPy 操作 `img[mask == 0] = 0` 的效果是否等价？各自有什么优缺点？
-3. 如果 logo 包含**半透明区域**（如 PNG 格式的 alpha 通道），上述二值掩膜方法还适用吗？应该如何利用 alpha 通道实现更精确的合成？提示：`cv2.imread("logo.png", cv2.IMREAD_UNCHANGED)` 可以读取含 alpha 通道的 4 通道图像。
+1. 对于腐蚀和膨胀操作，使用**矩形核、椭圆核、十字核**分别会产生什么不同的效果？在什么场景下应该选择哪种核形状？
+2. 开运算（先腐蚀后膨胀）为什么能去除白色噪点而不明显改变主体大小？闭运算（先膨胀后腐蚀）又为什么能填补黑色空洞？试从操作的先后顺序角度分析。
+3. 在提取单个字母时，如果图片中存在标点符号（如句号、逗号），它们也会被当作"字母"提取出来。除了面积筛选，还有哪些特征可以帮助区分字母和标点？
+4. 形态学梯度提取的"边缘"与 Canny 边缘检测的结果有什么区别？各自适合什么场景？(考虑到之后很快就会有边缘检测的实验...)
 
 ## 实验完毕后，记得提交修改（命令行中-m后的字符串可自行确定），以供检查：
 
 ```
-git commit -a -m "my work on lab1_7 is done."
+git commit -a -m "my work on lab1_8 is done."
 ```
+
+
