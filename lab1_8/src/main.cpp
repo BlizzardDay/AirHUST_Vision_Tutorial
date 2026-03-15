@@ -59,5 +59,24 @@ int main() {
 	}
 
 	imwrite("../Output/word_morphology.png", word_morphology);
+
+	Mat img_op, img_lev1 = img.clone(), img_lev2, img_all;
+	morphologyEx(img, img_op, MORPH_ERODE, kernel_rect);
+	hconcat(img_lev1, img_op, img_lev1);
+	morphologyEx(img, img_op, MORPH_DILATE, kernel_rect);
+	hconcat(img_lev1, img_op, img_lev1);
+	morphologyEx(img, img_op, MORPH_CLOSE, kernel_rect);
+	hconcat(img_lev1, img_op, img_lev1);
+	morphologyEx(img, img_op, MORPH_OPEN, kernel_rect);
+	img_lev2 = img_op.clone();
+	morphologyEx(img, img_op, MORPH_GRADIENT, kernel_rect);
+	hconcat(img_lev2, img_op, img_lev2);
+	morphologyEx(img, img_op, MORPH_TOPHAT, kernel_rect);
+	hconcat(img_lev2, img_op, img_lev2);
+	morphologyEx(img, img_op, MORPH_BLACKHAT, kernel_rect);
+	hconcat(img_lev2, img_op, img_lev2);
+	vconcat(img_lev1, img_lev2, img_all);
+
+	imwrite("../Output/img_all.png", img_all);
 	return 0;
 }
