@@ -1,0 +1,64 @@
+# ========================= Visual Studio 核心忽略文件 =========================
+# 1. 编译产物目录（包含大量二进制大文件，如 .exe、.dll、.obj 等，无需版本控制）
+bin/
+obj/
+
+# 2. VS 解决方案/项目配置文件（本地个性化配置，无需提交）
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.sln.metaproj
+*.sln.metaproj.tmp
+*.vcxproj.user
+*.vcxproj.filters
+*.vcxproj.opendb
+*.vcxproj.sqlite3
+*.vcxproj.user.*
+
+# 3. 调试相关文件（大文件，调试后无需保留）
+*.pdb
+*.idb
+*.ilk
+*.log
+*.sdf
+*.opensdf
+*.vc.db
+*.vc.VC.opendb
+*.vc.VC.sqlite3
+Debug/
+Release/
+x64/
+x86/
+AnyCPU/
+
+# 4. VS 缓存和临时文件
+.vs/                  # 关键！VS 核心缓存目录，包含大量隐藏大文件，必须忽略
+*.tmp
+*.bak
+*.cache
+*.ncb
+*.aps
+*.plg
+*.clw
+*.tlog/
+ipch/
+BuildLog/
+_UpgradeReport_Files/
+UpgradeLog*.htm
+UpgradeLog*.xml
+
+# 5. 发布/部署相关文件（无需版本控制）
+Publish/
+AppPackages/
+BundleArtifacts/
+*.appx
+*.appxbundle
+*.appxupload
+
+# 6. 其他 VS 衍生冗余文件
+TestResults/
+*.coverage
+*.runsettings
+*.dat
+*.lib
